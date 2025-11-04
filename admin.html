@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>AStar Live Cricket Score — Admin</title>
+<style>
+  :root{--green:#0ea44a;--dark:#0b6b3a;--cream:#f6efe6;--yellow:#ffdd00}
+  body{margin:0;font-family:Inter,Arial;background:linear-gradient(180deg,#eaf6ea,#f6efe6);color:#05220b;display:flex;align-items:center;justify-content:center;height:100vh}
+  .panel{background:white;padding:18px;border-radius:12px;box-shadow:0 8px 30px rgba(5,40,20,0.08);width:420px;max-width:94%}
+  h2{margin:0 0 6px;color:var(--dark)}
+  input,textarea{width:100%;padding:8px;margin:8px 0;border-radius:8px;border:1px solid #e4e4e4;font-size:14px}
+  button{background:var(--yellow);border:none;padding:10px 12px;border-radius:8px;font-weight:800;cursor:pointer}
+  .row{display:flex;gap:8px}
+  .row>*{flex:1}
+  .hint{font-size:13px;color:#4b6b54}
+  .success{color:green;margin-top:8px}
+  .error{color:#8b1a1a;margin-top:8px}
+</style>
+</head>
+<body>
+  <div class="panel">
+    <h2>AStar Live Cricket Score — Admin</h2>
+
+    <div id="loginBox">
+      <div class="hint">Enter the admin password</div>
+      <input id="password" type="password" placeholder="Admin password">
+      <button id="loginBtn">Login</button>
+      <div id="loginMsg" class="error"></div>
+    </div>
+
+    <div id="editor" style="display:none;">
+
+      <input id="match_title" placeholder="Match title">
+
+      <div class="row">
+        <input id="team1_name" placeholder="Team 1 name">
+        <input id="team2_name" placeholder="Team 2 name">
+      </div>
+
+      <div class="row">
+        <input id="runs" placeholder="Runs">
+        <input id="wickets" placeholder="Wickets">
+      </div>
+
+      <div class="row">
+        <input id="overs" placeholder="Overs e.g. 7.3">
+        <input id="overs_total" placeholder="Total overs e.g. 20">
+      </div>
+
+      <div class="row">
+        <input id="striker" placeholder="Striker (e.g. A Has 28(18))">
+        <input id="bowler" placeholder="Bowler">
+      </div>
+
+      <div class="row">
+        <input id="target" placeholder="Target e.g. 160">
+        <input id="balls_remaining" placeholder="Balls remaining">
+      </div>
+
+      <textarea id="notes" rows="3" placeholder="Notes / commentary"></textarea>
+
+      <button id="updateBtn">Update Score</button>
+      <div id="updateMsg"></div>
+    </div>
+  </div>
+
+<script>
+const BACKEND="https://livecricketscore-backend.onrender.com";
+async function post(u,b){return await fetch(BACKEND+u,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)})}
+
+document.getElementById("loginBtn").onclick=async()=>{
+  const p=document.getElementById("password").value.trim();
+  if(!p)return document.getElementById("loginMsg").innerText="Enter password";
+  const r=await post("/admin/login",{password:p});
+  if(r.ok){
+    sessionStorage.setItem("admin_pwd",p);
+    loginBox.style.display="none";editor.style.display="block";
+  }else loginMsg.innerText="Invalid password";
+};
+
+document.getElementById("updateBtn").onclick=async()=>{
+  const p=sessionStorage.getItem("admin_pwd");
+  if(!p)return updateMsg.innerText="Login first";
+  updateMsg.innerText="Updating...";
+  const body={
+    password:p,
+    match_title:match_title.value.trim(),
+    team1_name:team1_name.value.trim(),
+    team2_name:team2_name.value.trim(),
+    runs:runs.value?Number(runs.value):undefined,
+    wickets:wickets.value?Number(wickets.value):undefined,
+    overs:overs.value.trim(),
+    overs_total:overs_total.value?Number(overs_total.value):undefined,
+    striker:striker.value.trim(),
+    bowler:bowler.value.trim(),
+    target:target.value?Number(target.value):undefined,
+    balls_remaining:balls_remaining.value?Number(balls_remaining.value):undefined,
+    notes:notes.value.trim()
+  };
+  const r=await post("/score",body);
+  if(r.ok){
+    updateMsg.innerText="Updated ✓";
+    setTimeout(()=>updateMsg.innerText="",2000);
+  }else updateMsg.innerText="Error updating";
+};
+</script>
+</body>
+</html>
