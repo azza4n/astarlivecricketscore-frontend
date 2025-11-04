@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>AStar Live Cricket Score — Live</title>
+<style>
+  :root{
+    --green:#0ea44a;
+    --dark-green:#0b6b3a;
+    --cream:#f6efe6;
+    --yellow:#ffdd00;
+    --muted:#4b6b54;
+  }
+  body{margin:0;font-family:Inter,system-ui,Arial;background:var(--cream);color:#05220b;}
+  .wrap{max-width:880px;margin:28px auto;padding:20px;}
+  .card{background:white;border-radius:14px;box-shadow:0 6px 18px rgba(7,40,25,0.08);padding:18px;}
+  header{display:flex;align-items:center;gap:12px}
+  .logo{width:62px;height:50px;background:linear-gradient(180deg,var(--green),var(--dark-green));border-radius:10px;display:flex;align-items:center;justify-content:center;color:white;font-size:1.2rem;font-weight:900}
+  h1{margin:0;font-size:1.25rem;color:var(--dark-green)}
+  .meta{color:var(--muted);font-size:0.95rem;margin-top:6px}
+  .score-row{display:flex;justify-content:space-between;align-items:center;margin-top:16px}
+  .team-block{flex:1;padding:14px;border-radius:10px;background:linear-gradient(0deg,var(--cream),#fff);margin-right:10px}
+  .team-name{font-weight:800;color:var(--dark-green);font-size:1.05rem}
+  .score-big{font-size:2.8rem;font-weight:900;color:var(--yellow);margin-top:6px}
+  .smallline{color:var(--muted);font-size:0.95rem;margin-top:8px}
+  .details{margin-top:12px;display:flex;gap:12px;flex-wrap:wrap}
+  .pill{background:var(--green);color:white;padding:8px 10px;border-radius:999px;font-weight:700}
+  .notes{margin-top:12px;color:#294b34}
+  .updated{margin-top:8px;color:#6b8b70;font-size:0.9rem}
+  footer{margin-top:18px;text-align:center;color:var(--muted);font-size:0.9rem}
+  @media(max-width:680px){
+    .score-row{flex-direction:column}
+    .team-block{margin-right:0;width:100%}
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <header>
+        <div class="logo">AStar</div>
+        <div>
+          <h1>AStar Live Cricket Score</h1>
+          <div class="meta" id="matchTitle">Loading match...</div>
+        </div>
+      </header>
+
+      <div class="score-row">
+        <div class="team-block">
+          <div class="team-name" id="team1">Team 1</div>
+          <div class="score-big" id="team1score">--</div>
+          <div class="smallline" id="team1detail"></div>
+        </div>
+
+        <div class="team-block" style="margin-right:0">
+          <div class="team-name" id="team2">Team 2</div>
+          <div class="score-big" id="team2score">--</div>
+          <div class="smallline" id="team2detail"></div>
+        </div>
+      </div>
+
+      <div class="details">
+        <div class="pill" id="overs">Overs: --</div>
+        <div class="pill" id="wickets">Wickets: --</div>
+        <div class="pill" id="striker">Striker: --</div>
+        <div class="pill" id="bowler">Bowler: --</div>
+        <div style="flex:1"></div>
+        <div style="text-align:right;">
+          <div style="font-weight:700;color:var(--dark-green)">CRR: <span id="crr">--</span></div>
+          <div style="font-weight:700;color:var(--dark-green)">RRR: <span id="rrr">--</span></div>
+        </div>
+      </div>
+
+      <div class="notes" id="notes"></div>
+      <div class="updated" id="updated">Last updated: --</div>
+    </div>
+
+    <footer>Score refreshes automatically every 5 seconds • Powered by AStar 🏏</footer>
+  </div>
+
+<script>
+const BACKEND = "https://livecricketscore-backend.onrender.com";
+
+// helpers
+function oversToBalls(o){if(!o)return 0;const p=String(o).split('.');return(parseInt(p[0]||0)*6)+(parseInt(p[1]||0))}
+function ballsToOvers(b){return Math.floor(b/6)+"."+(b%6)}
+function formatCRR(r,o){const balls=oversToBalls(o);if(!balls)return"--";return(r/(balls/6)).toFixed(2)}
+function computeRRR(d){
+  if(!d.target)return"--";
+  const rn = d.target-(d.runs||0); if(rn<=0)return"Reached";
+  if(d.balls_remaining!==undefined){const o=d.balls_remaining/6; return o>0?(rn/o).toFixed(2):"--";}
+  if(d.overs_total){const b=oversToBalls(d.overs||"0.0");const tb=Math.round(d.overs_total*6);const br=tb-b;if(br>0)return (rn/(br/6)).toFixed(2);}
+  return"--";
+}
+
+async function updateScore(){
+  try{
+    const res = await fetch(BACKEND+"/score"); const d = await res.json();
+    document.getElementById("matchTitle").innerText = d.match_title || "Match Live";
+    document.getElementById("team1").innerText = d.team1_name || "Team 1";
+    document.getElementById("team2").innerText = d.team2_name || "Team 2";
+    document.getElementById("team1score").innerText = d.team1_score || (d.team1_runs!==undefined?`${d.team1_runs}/${d.team1_wickets||0}`:"--");
+    document.getElementById("team2score").innerText = d.team2_score || (d.team2_runs!==undefined?`${d.team2_runs}/${d.team2_wickets||0}`:"--");
+    document.getElementById("overs").innerText = "Overs: "+(d.overs||"--");
+    document.getElementById("wickets").innerText = "Wickets: "+(d.wickets!==undefined?d.wickets:(d.team1_wickets||0));
+    document.getElementById("striker").innerText = "Striker: "+(d.striker||"--");
+    document.getElementById("bowler").innerText = "Bowler: "+(d.bowler||"--");
+    document.getElementById("notes").innerText = d.notes||"";
+    const runs = Number(d.runs||d.team1_runs||0);
+    document.getElementById("crr").innerText = formatCRR(runs,d.overs);
+    document.getElementById("rrr").innerText = computeRRR({target:d.target,runs,overs:d.overs,overs_total:d.overs_total,balls_remaining:d.balls_remaining});
+    document.getElementById("updated").innerText = d.last_updated?"Last updated: "+new Date(d.last_updated).toLocaleString():"";
+  }catch(e){console.log(e)}
+}
+updateScore(); setInterval(updateScore,5000);
+</script>
+</body>
+</html>
